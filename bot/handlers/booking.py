@@ -1,6 +1,7 @@
 """Booking handlers for activity registration."""
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
+from typing import Union
 
 from bot.database import Database
 from bot.keyboards import (
@@ -15,7 +16,7 @@ router = Router()
 @router.message(F.text == "📝 Запись на активности")
 @router.callback_query(F.data == "show_activities")
 @router.callback_query(F.data == "back_to_activities")
-async def show_activities(event: Message | CallbackQuery, db: Database):
+async def show_activities(event: Union[Message, CallbackQuery], db: Database):
     """Show list of activities for booking."""
     user_id = event.from_user.id
 
@@ -159,7 +160,7 @@ async def cancel_booking(callback: CallbackQuery, db: Database):
 
 
 @router.message(F.text == "📋 Мои записи")
-async def show_my_bookings(event: Message | CallbackQuery, db: Database):
+async def show_my_bookings(event: Union[Message, CallbackQuery], db: Database):
     """Show user's bookings."""
     user_id = event.from_user.id
 
