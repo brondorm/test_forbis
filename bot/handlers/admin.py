@@ -2,7 +2,7 @@
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup, default_state
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import StateFilter
 import logging
 
@@ -62,13 +62,11 @@ async def show_admin_panel(message: Message):
 )
 async def back_to_admin(callback: CallbackQuery, state: FSMContext):
     """Return to admin panel."""
-    logger.info(f"Back to admin called by user {callback.from_user.id}")
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔️ Доступ запрещен", show_alert=True)
         return
 
     await state.clear()
-    logger.info("State cleared, returning to admin panel")
 
     text = """
 👑 **Админ-панель**
@@ -81,7 +79,7 @@ async def back_to_admin(callback: CallbackQuery, state: FSMContext):
 
 
 # Broadcast functionality
-@router.callback_query(F.data == "admin_broadcast", StateFilter("*"))
+@router.callback_query(F.data == "admin_broadcast")
 async def start_broadcast(callback: CallbackQuery, state: FSMContext):
     """Start broadcast message creation."""
     if not is_admin(callback.from_user.id):
@@ -142,7 +140,7 @@ async def process_broadcast(message: Message, state: FSMContext, db: Database, b
 
 
 # Activity management
-@router.callback_query(F.data == "admin_add_activity", StateFilter("*"))
+@router.callback_query(F.data == "admin_add_activity")
 async def start_add_activity(callback: CallbackQuery, state: FSMContext):
     """Start adding new activity."""
     if not is_admin(callback.from_user.id):
@@ -262,15 +260,12 @@ async def process_activity_capacity(message: Message, state: FSMContext, db: Dat
 
 
 # Booking management
-@router.callback_query(F.data == "admin_bookings", StateFilter("*"))
-async def show_admin_bookings(callback: CallbackQuery, db: Database, state: FSMContext):
+@router.callback_query(F.data == "admin_bookings")
+async def show_admin_bookings(callback: CallbackQuery, db: Database):
     """Show activities for booking management."""
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔️ Доступ запрещен", show_alert=True)
         return
-
-    # Clear any active state
-    await state.clear()
 
     activities = await db.get_activities()
 
@@ -372,15 +367,12 @@ async def export_bookings(callback: CallbackQuery, db: Database):
 
 
 # Users list
-@router.callback_query(F.data == "admin_users_list", StateFilter("*"))
-async def show_users_list(callback: CallbackQuery, db: Database, state: FSMContext):
+@router.callback_query(F.data == "admin_users_list")
+async def show_users_list(callback: CallbackQuery, db: Database):
     """Show list of all registered users."""
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔️ Доступ запрещен", show_alert=True)
         return
-
-    # Clear any active state
-    await state.clear()
 
     users = await db.get_all_users()
 
@@ -420,15 +412,10 @@ async def show_users_list(callback: CallbackQuery, db: Database, state: FSMConte
 )
 async def cancel_operation(callback: CallbackQuery, state: FSMContext):
     """Cancel current operation and return to admin panel."""
-    logger.info(f"Cancel operation called by user {callback.from_user.id}")
-
     if not is_admin(callback.from_user.id):
-        logger.warning(f"Non-admin user {callback.from_user.id} tried to cancel operation")
         await callback.answer("⛔️ Доступ запрещен", show_alert=True)
         return
 
-    current_state = await state.get_state()
-    logger.info(f"Clearing state: {current_state}")
     await state.clear()
 
     text = """
@@ -437,14 +424,5 @@ async def cancel_operation(callback: CallbackQuery, state: FSMContext):
 Выберите действие:
 """
     keyboard = get_admin_panel_keyboard()
-
-    try:
-        logger.info("Attempting to edit message")
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
-        await callback.answer("❌ Операция отменена")
-        logger.info("Successfully returned to admin panel")
-    except Exception as e:
-        logger.error(f"Error editing message: {e}", exc_info=True)
-        await callback.answer("❌ Операция отменена")
-        # Try sending new message if edit fails
-        await callback.message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.answer("❌ Операция отменена")
