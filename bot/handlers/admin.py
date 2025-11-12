@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery, BufferedInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import StateFilter
+import logging
 
 from bot.config import ADMIN_IDS, MAX_BOOKING_CAPACITY
 from bot.database import Database
@@ -17,6 +18,7 @@ from bot.keyboards import (
 import csv
 from io import StringIO
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 
@@ -391,10 +393,15 @@ async def show_users_list(callback: CallbackQuery, db: Database):
 @router.callback_query(F.data == "cancel_operation")
 async def cancel_operation(callback: CallbackQuery, state: FSMContext):
     """Cancel current operation and return to admin panel."""
+    logger.info(f"Cancel operation called by user {callback.from_user.id}")
+
     if not is_admin(callback.from_user.id):
+        logger.warning(f"Non-admin user {callback.from_user.id} tried to cancel operation")
         await callback.answer("⛔️ Доступ запрещен", show_alert=True)
         return
 
+    current_state = await state.get_state()
+    logger.info(f"Clearing state: {current_state}")
     await state.clear()
 
     text = """
@@ -403,5 +410,14 @@ async def cancel_operation(callback: CallbackQuery, state: FSMContext):
 Выберите действие:
 """
     keyboard = get_admin_panel_keyboard()
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
-    await callback.answer("❌ Операция отменена")
+
+    try:
+        logger.info("Attempting to edit message")
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        await callback.answer("❌ Операция отменена")
+        logger.info("Successfully returned to admin panel")
+    except Exception as e:
+        logger.error(f"Error editing message: {e}", exc_info=True)
+        await callback.answer("❌ Операция отменена")
+        # Try sending new message if edit fails
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="Markdown")

@@ -46,6 +46,14 @@ async def main():
         data['db'] = db
         return await handler(event, data)
 
+    # Middleware to log callback queries
+    @dp.callback_query.middleware()
+    async def log_callback_middleware(handler, event, data):
+        logger.info(f"Callback query received: data='{event.data}' from user={event.from_user.id}")
+        result = await handler(event, data)
+        logger.info(f"Callback query handled: data='{event.data}'")
+        return result
+
     logger.info("Bot starting...")
 
     try:
