@@ -390,10 +390,18 @@ async def show_users_list(callback: CallbackQuery, db: Database):
 # Cancel operation
 @router.callback_query(F.data == "cancel_operation")
 async def cancel_operation(callback: CallbackQuery, state: FSMContext):
-    """Cancel current operation."""
+    """Cancel current operation and return to admin panel."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔️ Доступ запрещен", show_alert=True)
+        return
+
     await state.clear()
 
-    text = "❌ Операция отменена"
-    keyboard = get_back_to_admin_keyboard()
-    await callback.message.edit_text(text, reply_markup=keyboard)
-    await callback.answer()
+    text = """
+👑 **Админ-панель**
+
+Выберите действие:
+"""
+    keyboard = get_admin_panel_keyboard()
+    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.answer("❌ Операция отменена")
