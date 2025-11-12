@@ -131,7 +131,18 @@ async def book_activity(callback: CallbackQuery, db: Database):
 @router.callback_query(F.data.startswith("cancel_"))
 async def cancel_booking(callback: CallbackQuery, db: Database):
     """Cancel a booking."""
-    activity_id = int(callback.data.split("_")[1])
+    # Extract activity_id from callback data
+    parts = callback.data.split("_")
+    if len(parts) < 2:
+        return
+
+    # Check if the second part is a valid number (activity_id)
+    try:
+        activity_id = int(parts[1])
+    except ValueError:
+        # Not a booking cancellation, skip this handler
+        return
+
     user_id = callback.from_user.id
 
     # Cancel booking
