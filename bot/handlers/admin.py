@@ -52,7 +52,7 @@ async def show_admin_panel(message: Message):
     await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
 
-@router.callback_query(F.data == "back_to_admin")
+@router.callback_query(F.data == "back_to_admin", StateFilter("*"))
 async def back_to_admin(callback: CallbackQuery, state: FSMContext):
     """Return to admin panel."""
     if not is_admin(callback.from_user.id):
@@ -390,7 +390,7 @@ async def show_users_list(callback: CallbackQuery, db: Database):
 
 
 # Cancel operation
-@router.callback_query(F.data == "cancel_operation")
+@router.callback_query(F.data == "cancel_operation", StateFilter("*"))
 async def cancel_operation(callback: CallbackQuery, state: FSMContext):
     """Cancel current operation and return to admin panel."""
     logger.info(f"Cancel operation called by user {callback.from_user.id}")
