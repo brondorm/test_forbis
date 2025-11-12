@@ -72,7 +72,7 @@ async def back_to_admin(callback: CallbackQuery, state: FSMContext):
 
 
 # Broadcast functionality
-@router.callback_query(F.data == "admin_broadcast")
+@router.callback_query(F.data == "admin_broadcast", StateFilter("*"))
 async def start_broadcast(callback: CallbackQuery, state: FSMContext):
     """Start broadcast message creation."""
     if not is_admin(callback.from_user.id):
@@ -133,7 +133,7 @@ async def process_broadcast(message: Message, state: FSMContext, db: Database, b
 
 
 # Activity management
-@router.callback_query(F.data == "admin_add_activity")
+@router.callback_query(F.data == "admin_add_activity", StateFilter("*"))
 async def start_add_activity(callback: CallbackQuery, state: FSMContext):
     """Start adding new activity."""
     if not is_admin(callback.from_user.id):
@@ -253,12 +253,15 @@ async def process_activity_capacity(message: Message, state: FSMContext, db: Dat
 
 
 # Booking management
-@router.callback_query(F.data == "admin_bookings")
-async def show_admin_bookings(callback: CallbackQuery, db: Database):
+@router.callback_query(F.data == "admin_bookings", StateFilter("*"))
+async def show_admin_bookings(callback: CallbackQuery, db: Database, state: FSMContext):
     """Show activities for booking management."""
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔️ Доступ запрещен", show_alert=True)
         return
+
+    # Clear any active state
+    await state.clear()
 
     activities = await db.get_activities()
 
@@ -360,12 +363,15 @@ async def export_bookings(callback: CallbackQuery, db: Database):
 
 
 # Users list
-@router.callback_query(F.data == "admin_users_list")
-async def show_users_list(callback: CallbackQuery, db: Database):
+@router.callback_query(F.data == "admin_users_list", StateFilter("*"))
+async def show_users_list(callback: CallbackQuery, db: Database, state: FSMContext):
     """Show list of all registered users."""
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔️ Доступ запрещен", show_alert=True)
         return
+
+    # Clear any active state
+    await state.clear()
 
     users = await db.get_all_users()
 

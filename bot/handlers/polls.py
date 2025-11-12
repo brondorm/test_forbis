@@ -3,6 +3,7 @@ from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.filters import StateFilter
 
 from bot.config import ADMIN_IDS
 from bot.database import Database
@@ -26,7 +27,7 @@ def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
 
 
-@router.callback_query(F.data == "admin_create_poll")
+@router.callback_query(F.data == "admin_create_poll", StateFilter("*"))
 async def start_create_poll(callback: CallbackQuery, state: FSMContext):
     """Start poll creation."""
     if not is_admin(callback.from_user.id):
