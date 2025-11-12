@@ -31,7 +31,8 @@ async def main():
     await db.init_db()
     logger.info("Database initialized")
 
-    # Register routers
+    # Register routers (nav_router first for priority)
+    dp.include_router(admin.nav_router)  # Navigation handlers have priority
     dp.include_router(user.router)
     dp.include_router(booking.router)
     dp.include_router(admin.router)

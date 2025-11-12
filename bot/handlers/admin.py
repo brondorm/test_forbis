@@ -2,7 +2,7 @@
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.state import State, StatesGroup, default_state
 from aiogram.filters import StateFilter
 import logging
 
@@ -20,6 +20,8 @@ from io import StringIO
 
 logger = logging.getLogger(__name__)
 router = Router()
+# Navigation router with higher priority - registered first
+nav_router = Router()
 
 
 class AdminStates(StatesGroup):
@@ -52,14 +54,21 @@ async def show_admin_panel(message: Message):
     await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
 
-@router.callback_query(F.data == "back_to_admin", StateFilter("*"))
+@nav_router.callback_query(
+    F.data == "back_to_admin",
+    StateFilter(None, AdminStates.waiting_broadcast_message, AdminStates.waiting_activity_name,
+                AdminStates.waiting_activity_description, AdminStates.waiting_activity_datetime,
+                AdminStates.waiting_activity_capacity)
+)
 async def back_to_admin(callback: CallbackQuery, state: FSMContext):
     """Return to admin panel."""
+    logger.info(f"Back to admin called by user {callback.from_user.id}")
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔️ Доступ запрещен", show_alert=True)
         return
 
     await state.clear()
+    logger.info("State cleared, returning to admin panel")
 
     text = """
 👑 **Админ-панель**
@@ -396,7 +405,19 @@ async def show_users_list(callback: CallbackQuery, db: Database, state: FSMConte
 
 
 # Cancel operation
-@router.callback_query(F.data == "cancel_operation", StateFilter("*"))
+@nav_router.callback_query(
+    F.data == "cancel_operation",
+    StateFilter(
+        None,  # No state
+        AdminStates.waiting_broadcast_message,
+        AdminStates.waiting_activity_name,
+        AdminStates.waiting_activity_description,
+        AdminStates.waiting_activity_datetime,
+        AdminStates.waiting_activity_capacity,
+        "PollStates:waiting_question",  # Poll states as strings
+        "PollStates:waiting_options"
+    )
+)
 async def cancel_operation(callback: CallbackQuery, state: FSMContext):
     """Cancel current operation and return to admin panel."""
     logger.info(f"Cancel operation called by user {callback.from_user.id}")
